@@ -9,6 +9,18 @@ function mapToJsonString(map) {
     return JSON.stringify(Object.fromEntries(map))
 }
 
+function mapToObjectRec(m) {
+    let lo = {}
+    for (let [k, v] of m) {
+        if (v instanceof Map) {
+            lo[k] = mapToObjectRec(v)
+        } else {
+            lo[k] = v
+        }
+    }
+    return lo
+}
+
 async function invokeMethod(method, call, params) {
     let mappedParams = new Map()
 
@@ -78,7 +90,7 @@ async function invokeClientMethod(method, params) {
             await client.login({uid: userId, token: token})
             response.set('errorCode', 0)
         } catch (e) {
-            response.set('errorCode', e.errorCode)
+            response.set('errorCode', e.code)
         } finally {
             return mapToJsonString(response)
         }
@@ -87,7 +99,7 @@ async function invokeClientMethod(method, params) {
             await client.logout()
             response.set('errorCode', 0)
         } catch (e) {
-            response.set('errorCode', e.errorCode)
+            response.set('errorCode', e.code)
         } finally {
             return mapToJsonString(response)
         }
@@ -101,11 +113,11 @@ async function invokeClientMethod(method, params) {
             await client.sendMessageToPeer(
                 {text: message},
                 peerId,
-                {enableOfflineMessaging: offline, enableHistoricalMessaging: historical}
+                {enableOfflineMessaging: offline ?? false, enableHistoricalMessaging: historical ?? false}
             )
             response.set('errorCode', 0)
         } catch (e) {
-            response.set('errorCode', e.errorCode)
+            response.set('errorCode', e.code)
         } finally {
             return mapToJsonString(response)
         }
@@ -135,6 +147,7 @@ function configureClientEventHandler(client, clientIndex) {
             ['offline', messageProperties.isOfflineMessage],
             ['ts', messageProperties.serverReceivedTs],
         ]))
-        window.agoraRtmOnEvent(mapToJsonString(messageAsMap))
+        let nestedObject = mapToObjectRec(messageAsMap)
+        window.agoraRtmOnEvent(JSON.stringify(nestedObject))
     })
 }
