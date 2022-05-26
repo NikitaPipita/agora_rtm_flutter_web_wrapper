@@ -1,53 +1,28 @@
 import AgoraRTM from 'agora-rtm-sdk'
+import {configureClientEventHandler, RTMClient} from './rtm_client';
+import {configureChannelEventHandler, RTMChannel} from './rtm_channel';
 
 let nextClientIndex = 0
 let clients = new Map()
 
-window.agoraRtmInvokeMethod = async (method, call, params) => await invokeMethod(method, call, params)
+window.agoraRtmInvokeStaticMethod = async (method, params) => await invokeStaticMethod(method, params)
 
-function mapToJsonString(map) {
-    return JSON.stringify(Object.fromEntries(map))
-}
+window.agoraRtmInvokeClientMethod = async (method, params) => await invokeClientMethod(method, params)
 
-function mapToObjectRec(m) {
-    let lo = {}
-    for (let [k, v] of m) {
-        if (v instanceof Map) {
-            lo[k] = mapToObjectRec(v)
-        } else {
-            lo[k] = v
-        }
-    }
-    return lo
-}
+window.agoraRtmInvokeChannelMethod = async (method, params) => await invokeChannelMethod(method, params)
 
-async function invokeMethod(method, call, params) {
+async function invokeStaticMethod(method, params) {
+    let response = new Map()
+
     let mappedParams = new Map()
-
     if (params != null) {
         JSON.parse(params, function (k, v) {
             mappedParams.set(k, v)
         })
     }
 
-    if (call === 'static') {
-        return await invokeStaticMethod(method, mappedParams)
-    } else if (call === 'AgoraRtmClient') {
-        return await invokeClientMethod(method, mappedParams)
-    } else if (call === 'AgoraRtmChannel') {
-        return await invokeChannelMethod(method, mappedParams)
-    }
-    return mapToJsonString(new Map([
-        ['errorCode', -1],
-        ['errorMessage', 'Not implemented']
-    ]))
-}
-
-async function invokeStaticMethod(method, params) {
-    let response = new Map()
-
     if (method === 'createInstance') {
-        let appId = params.get('appId')
+        let appId = mappedParams.get('appId')
         if (typeof appId !== 'string') {
             response.set('errorCode', -1)
         } else {
@@ -56,14 +31,18 @@ async function invokeStaticMethod(method, params) {
             response.set('errorCode', 0)
             response.set('index', nextClientIndex)
 
-            clients.set(nextClientIndex, client)
+            clients.set(nextClientIndex, new RTMClient(client, nextClientIndex))
             configureClientEventHandler(client, nextClientIndex)
 
             nextClientIndex++
         }
         return mapToJsonString(response)
+    } else if (method === 'getSdkVersion') {
+        response.set('errorCode', 0)
+        response.set('version', AgoraRTM.VERSION)
+        return mapToJsonString(response)
     }
-    //TODO: implement getSdkVersion
+
     return mapToJsonString(new Map([
         ['errorCode', -1],
         ['errorMessage', 'Not implemented']
@@ -73,8 +52,23 @@ async function invokeStaticMethod(method, params) {
 async function invokeClientMethod(method, params) {
     let response = new Map()
 
-    let clientIndex = params.get('clientIndex')
-    let client = clients.get(clientIndex)
+    let mappedParams = new Map()
+    if (params != null) {
+        JSON.parse(params, function (k, v) {
+            mappedParams.set(k, v)
+        })
+    }
+
+    let clientIndex = mappedParams.get('clientIndex')
+    let clientInstance = clients.get(clientIndex)
+    if (clientInstance === undefined) {
+        return mapToJsonString(new Map([
+            ['errorCode', -1],
+            ['errorMessage', 'Client not exist']
+        ]))
+    }
+
+    let client = clientInstance.rtmClient
     if (client === undefined) {
         return mapToJsonString(new Map([
             ['errorCode', -1],
@@ -82,9 +76,14 @@ async function invokeClientMethod(method, params) {
         ]))
     }
 
-    if (method === 'login') {
-        let userId = params.get('userId')
-        let token = params.get('token')
+
+    if (method === 'destroy') {
+        //TODO: release all client channels, delete client
+    } else if (method === 'setLog') {
+        //TODO: make web logs
+    } else if (method === 'login') {
+        let userId = mappedParams.get('userId')
+        let token = mappedParams.get('token')
 
         try {
             await client.login({uid: userId, token: token})
@@ -103,11 +102,46 @@ async function invokeClientMethod(method, params) {
         } finally {
             return mapToJsonString(response)
         }
+    } else if (method === 'renewToken') {
+        let token = mappedParams.get('token')
+
+        try {
+            await client.renewToken(token)
+            response.set('errorCode', 0)
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
+    } else if (method === 'queryPeersOnlineStatus') {
+        let peerIds = mappedParams.get('peerIds')
+
+        try {
+            if (!peerIds.isArray()) {
+                response.set('errorCode', -1)
+                response.set('errorMessage', 'peer Ids Array should be past')
+            } else {
+                let peersOnlineStatusResult = await client.queryPeersOnlineStatus(peerIds)
+
+                let peerIdsStatus = new Map()
+                for (let i = 0; i < peerIds.length; i++) {
+                    let peerId = peerIds[i]
+                    peerIdsStatus[peerId] = peersOnlineStatusResult.peerId
+                }
+
+                response.set('errorCode', 0)
+                response.set('results', peerIdsStatus)
+            }
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
     } else if (method === 'sendMessageToPeer') {
-        let peerId = params.get('peerId')
-        let message = params.get('message')
-        let offline = params.get('offline')
-        let historical = params.get('historical')
+        let peerId = mappedParams.get('peerId')
+        let message = mappedParams.get('message')
+        let offline = mappedParams.get('offline')
+        let historical = mappedParams.get('historical')
 
         try {
             await client.sendMessageToPeer(
@@ -121,7 +155,71 @@ async function invokeClientMethod(method, params) {
         } finally {
             return mapToJsonString(response)
         }
+    } else if (method === 'setLocalUserAttributes') {
+        //TODO: implement
+    } else if (method === 'addOrUpdateLocalUserAttributes') {
+        //TODO: implement
+    } else if (method === 'deleteLocalUserAttributesByKeys') {
+        //TODO: implement
+    } else if (method === 'clearLocalUserAttributes') {
+        //TODO: implement
+    } else if (method === 'getUserAttributes') {
+        //TODO: implement
+    } else if (method === 'getUserAttributesByKeys') {
+        //TODO: implement
+    } else if (method === 'setChannelAttributes') {
+        //TODO: implement
+    } else if (method === 'addOrUpdateChannelAttributes') {
+        //TODO: implement
+    } else if (method === 'deleteChannelAttributesByKeys') {
+        //TODO: implement
+    } else if (method === 'clearChannelAttributes') {
+        //TODO: implement
+    } else if (method === 'getChannelAttributes') {
+        //TODO: implement
+    } else if (method === 'getChannelAttributesByKeys') {
+        //TODO: implement
+    } else if (method === 'sendLocalInvitation') {
+        //TODO: implement
+    } else if (method === 'cancelLocalInvitation') {
+        //TODO: implement
+    } else if (method === 'acceptRemoteInvitation') {
+        //TODO: implement
+    } else if (method === 'refuseRemoteInvitation') {
+        //TODO: implement
+    } else if (method === 'createChannel') {
+        let channelId = mappedParams.get('channelId')
+
+        try {
+            let channel = client.createChannel(channelId)
+            clientInstance.rtmChannels.set(channelId, new RTMChannel(channel, clientIndex, channelId))
+            configureChannelEventHandler(channel, clientIndex, channelId)
+
+            response.set('errorCode', 0)
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
+    } else if (method === 'releaseChannel') {
+        let channelId = mappedParams.get('channelId')
+
+        try {
+            let channelExist = clientInstance.rtmChannels.has(channelId)
+
+            if (channelExist) {
+                clientInstance.rtmChannels.delete(channelId)
+                response.set('errorCode', 0)
+            } else {
+                response.set('errorCode', -1)
+            }
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
     }
+
 
     return mapToJsonString(new Map([
         ['errorCode', -1],
@@ -130,24 +228,109 @@ async function invokeClientMethod(method, params) {
 }
 
 async function invokeChannelMethod(method, params) {
+    let response = new Map()
+
+    let mappedParams = new Map()
+    if (params != null) {
+        JSON.parse(params, function (k, v) {
+            mappedParams.set(k, v)
+        })
+    }
+
+    let clientIndex = mappedParams.get('clientIndex')
+    let clientInstance = clients.get(clientIndex)
+    if (clientInstance === undefined) {
+        return mapToJsonString(new Map([
+            ['errorCode', -1],
+            ['errorMessage', 'Client not exist']
+        ]))
+    }
+
+    let client = clientInstance.rtmClient
+    if (client === undefined) {
+        return mapToJsonString(new Map([
+            ['errorCode', -1],
+            ['errorMessage', 'Client not exist']
+        ]))
+    }
+
+    let channelId = mappedParams.get('channelId')
+    let channelInstance = clientInstance.rtmChannels.get(channelId)
+    if (channelInstance === undefined) {
+        return mapToJsonString(new Map([
+            ['errorCode', -1],
+            ['errorMessage', 'Channel not exist']
+        ]))
+    }
+
+    let channel = clientInstance.rtmChannel
+    if (channel === undefined) {
+        return mapToJsonString(new Map([
+            ['errorCode', -1],
+            ['errorMessage', 'Channel not exist']
+        ]))
+    }
+
+    if (method === 'join') {
+        try {
+            await channel.join()
+            response.set('errorCode', 0)
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
+    } else if (method === 'sendMessage') {
+        let text = mappedParams.get('message')
+        let offline = mappedParams.get('offline')
+        let historical = mappedParams.get('historical')
+
+        try {
+            let message = client.createMessage({text: text})
+
+            await channel.sendMessage(message, {
+                    enableOfflineMessaging: offline ?? false,
+                    enableHistoricalMessaging: historical ?? false
+                }
+            )
+            response.set('errorCode', 0)
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
+    } else if (method === 'leave') {
+        try {
+            await channel.leave()
+            response.set('errorCode', 0)
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
+    } else if (method === 'getMembers') {
+        try {
+            let channelMembers = await channel.getMembers()
+
+            let membersList = []
+            for (let i = 0; i < channelMembers.length; i++) {
+                membersList.push(new Map([
+                    ['userId', channelMembers[i]],
+                    ['channelId', channelId]
+                ]))
+            }
+
+            response.set('errorCode', 0)
+            response.set('members', membersList)
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
+    }
+
     return mapToJsonString(new Map([
         ['errorCode', -1],
         ['errorMessage', 'Not implemented']
     ]))
-}
-
-function configureClientEventHandler(client, clientIndex) {
-    client.on('MessageFromPeer', function (message, peerId, messageProperties) {
-        let messageAsMap = new Map()
-        messageAsMap.set('clientIndex', clientIndex)
-        messageAsMap.set('event', 'onMessageReceived')
-        messageAsMap.set('peerId', peerId)
-        messageAsMap.set('message', new Map([
-            ['text', message.text],
-            ['offline', messageProperties.isOfflineMessage],
-            ['ts', messageProperties.serverReceivedTs],
-        ]))
-        let nestedObject = mapToObjectRec(messageAsMap)
-        window.agoraRtmOnEvent(JSON.stringify(nestedObject))
-    })
 }
