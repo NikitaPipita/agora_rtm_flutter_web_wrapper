@@ -254,7 +254,7 @@ async function invokeChannelMethod(method, params) {
         ]))
     }
 
-    let channel = clientInstance.rtmChannel
+    let channel = channelInstance.rtmChannel
     if (channel === undefined) {
         return mapToJsonString(new Map([
             ['errorCode', -1],
