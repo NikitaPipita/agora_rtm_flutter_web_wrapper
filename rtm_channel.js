@@ -1,3 +1,5 @@
+import {mapToObjectRec} from "./utils";
+
 export class RTMChannel {
     constructor(rtmChannel, clientIndex, channelId) {
         this.rtmChannel = rtmChannel;

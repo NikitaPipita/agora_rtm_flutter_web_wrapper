@@ -1,6 +1,7 @@
 import AgoraRTM from 'agora-rtm-sdk'
 import {configureClientEventHandler, RTMClient} from './rtm_client';
 import {configureChannelEventHandler, RTMChannel} from './rtm_channel';
+import {mapToJsonString} from "./utils";
 
 let nextClientIndex = 0
 let clients = new Map()

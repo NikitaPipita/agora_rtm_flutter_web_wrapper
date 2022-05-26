@@ -1,4 +1,5 @@
 import {RtmStatusCode} from "agora-rtm-sdk";
+import {mapToObjectRec} from "./utils";
 
 export class RTMClient {
     constructor(rtmClient, clientIndex) {
