@@ -1,7 +1,7 @@
 import AgoraRTM from 'agora-rtm-sdk'
 import {configureClientEventHandler, RTMClient} from './rtm_client';
 import {configureChannelEventHandler, RTMChannel} from './rtm_channel';
-import {mapToJsonString} from "./utils";
+import {mapToJsonString, parseJsonIntoOneLevelMap} from "./utils";
 
 let nextClientIndex = 0
 let clients = new Map()
@@ -15,12 +15,7 @@ window.agoraRtmInvokeChannelMethod = async (method, params) => await invokeChann
 async function invokeStaticMethod(method, params) {
     let response = new Map()
 
-    let mappedParams = new Map()
-    if (params != null) {
-        JSON.parse(params, function (k, v) {
-            mappedParams.set(k, v)
-        })
-    }
+    let mappedParams = parseJsonIntoOneLevelMap(params)
 
     if (method === 'createInstance') {
         let appId = mappedParams.get('appId')
@@ -231,12 +226,7 @@ async function invokeClientMethod(method, params) {
 async function invokeChannelMethod(method, params) {
     let response = new Map()
 
-    let mappedParams = new Map()
-    if (params != null) {
-        JSON.parse(params, function (k, v) {
-            mappedParams.set(k, v)
-        })
-    }
+    let mappedParams = parseJsonIntoOneLevelMap(params)
 
     let clientIndex = mappedParams.get('clientIndex')
     let clientInstance = clients.get(clientIndex)

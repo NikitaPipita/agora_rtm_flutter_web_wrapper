@@ -13,3 +13,13 @@ export function mapToObjectRec(m) {
     }
     return lo
 }
+
+export function parseJsonIntoOneLevelMap(jsonString) {
+    let params = new Map()
+    if (params != null) {
+        JSON.parse(jsonString, function (k, v) {
+            params.set(k, v)
+        })
+    }
+    return params
+}
