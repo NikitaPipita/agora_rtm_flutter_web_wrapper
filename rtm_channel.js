@@ -11,13 +11,13 @@ export class RTMChannel {
 export function configureChannelEventHandler(channel, clientIndex, channelId) {
     //TODO: Implement onAttributesUpdated
 
-    channel.on('ChannelMessage', function (message, peerId, messageProperties) {
+    channel.on('ChannelMessage', function (message, memberId, messageProperties) {
         let eventAsMap = new Map()
 
         eventAsMap.set('clientIndex', clientIndex)
         eventAsMap.set('channelId', channelId)
         eventAsMap.set('event', 'onMessageReceived')
-        eventAsMap.set('peerId', peerId)
+        eventAsMap.set('userId', memberId)
         eventAsMap.set('message', new Map([
             ['text', message.text],
             ['offline', messageProperties.isOfflineMessage],
