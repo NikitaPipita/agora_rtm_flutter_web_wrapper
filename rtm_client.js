@@ -1,5 +1,5 @@
 import {RtmStatusCode} from "agora-rtm-sdk";
-import {mapToObjectRec} from "./utils";
+import {mapToJsonString} from "./utils";
 
 export class RTMClient {
     constructor(rtmClient, clientIndex) {
@@ -52,8 +52,7 @@ export function configureClientEventHandler(client, clientIndex) {
         eventAsMap.set('state', stateCode)
         eventAsMap.set('reason', reasonCode)
 
-        let nestedObject = mapToObjectRec(eventAsMap)
-        window.agoraRtmOnClientEvent(JSON.stringify(nestedObject))
+        window.agoraRtmOnClientEvent(mapToJsonString(eventAsMap))
     })
 
     client.on('MessageFromPeer', function (message, peerId, messageProperties) {
@@ -68,8 +67,7 @@ export function configureClientEventHandler(client, clientIndex) {
             ['ts', messageProperties.serverReceivedTs],
         ]))
 
-        let nestedObject = mapToObjectRec(eventAsMap)
-        window.agoraRtmOnClientEvent(JSON.stringify(nestedObject))
+        window.agoraRtmOnClientEvent(mapToJsonString(eventAsMap))
     })
 
     client.on('TokenExpired', function () {
@@ -78,7 +76,6 @@ export function configureClientEventHandler(client, clientIndex) {
         eventAsMap.set('clientIndex', clientIndex)
         eventAsMap.set('event', 'onTokenExpired')
 
-        let nestedObject = mapToObjectRec(eventAsMap)
-        window.agoraRtmOnClientEvent(JSON.stringify(nestedObject))
+        window.agoraRtmOnClientEvent(mapToJsonString(eventAsMap))
     })
 }

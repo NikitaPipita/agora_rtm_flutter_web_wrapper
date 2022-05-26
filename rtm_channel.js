@@ -1,4 +1,4 @@
-import {mapToObjectRec} from "./utils";
+import {mapToJsonString} from "./utils";
 
 export class RTMChannel {
     constructor(rtmChannel, clientIndex, channelId) {
@@ -24,8 +24,7 @@ export function configureChannelEventHandler(channel, clientIndex, channelId) {
             ['ts', messageProperties.serverReceivedTs],
         ]))
 
-        let nestedObject = mapToObjectRec(eventAsMap)
-        window.agoraRtmOnChannelEvent(JSON.stringify(nestedObject))
+        window.agoraRtmOnChannelEvent(mapToJsonString(eventAsMap))
     })
 
     channel.on('MemberJoined', function (memberId) {
@@ -36,8 +35,7 @@ export function configureChannelEventHandler(channel, clientIndex, channelId) {
         eventAsMap.set('event', 'onMemberJoined')
         eventAsMap.set('userId', memberId)
 
-        let nestedObject = mapToObjectRec(eventAsMap)
-        window.agoraRtmOnChannelEvent(JSON.stringify(nestedObject))
+        window.agoraRtmOnChannelEvent(mapToJsonString(eventAsMap))
     })
 
     channel.on('MemberLeft', function (memberId) {
@@ -48,8 +46,7 @@ export function configureChannelEventHandler(channel, clientIndex, channelId) {
         eventAsMap.set('event', 'onMemberLeft')
         eventAsMap.set('userId', memberId)
 
-        let nestedObject = mapToObjectRec(eventAsMap)
-        window.agoraRtmOnChannelEvent(JSON.stringify(nestedObject))
+        window.agoraRtmOnChannelEvent(mapToJsonString(eventAsMap))
     })
 
     channel.on('MemberCountUpdated', function (memberCount) {
@@ -60,7 +57,6 @@ export function configureChannelEventHandler(channel, clientIndex, channelId) {
         eventAsMap.set('event', 'onMemberCountUpdated')
         eventAsMap.set('count', memberCount)
 
-        let nestedObject = mapToObjectRec(eventAsMap)
-        window.agoraRtmOnChannelEvent(JSON.stringify(nestedObject))
+        window.agoraRtmOnChannelEvent(mapToJsonString(eventAsMap))
     })
 }
