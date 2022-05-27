@@ -30,12 +30,6 @@ export function mapToJsonString(map) {
     return JSON.stringify(mapToObjectRec(map))
 }
 
-export function parseJsonIntoOneLevelMap(jsonString) {
-    let params = new Map()
-    if (params != null) {
-        JSON.parse(jsonString, function (k, v) {
-            params.set(k, v)
-        })
-    }
-    return params
+export function jsonStringToObject(jsonString) {
+    return JSON.parse(jsonString)
 }

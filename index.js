@@ -1,24 +1,25 @@
 import AgoraRTM from 'agora-rtm-sdk'
 import {configureClientEventHandler, RTMClient} from './rtm_client';
 import {configureChannelEventHandler, RTMChannel} from './rtm_channel';
-import {mapToJsonString, parseJsonIntoOneLevelMap} from "./utils";
+import {mapToJsonString, jsonStringToObject} from "./utils";
 
 let nextClientIndex = 0
 let clients = new Map()
 
-window.agoraRtmInvokeStaticMethod = async (method, params) => await invokeStaticMethod(method, params)
+window.agoraRtmInvokeStaticMethod = async (method, callArguments) => await invokeStaticMethod(method, callArguments)
 
-window.agoraRtmInvokeClientMethod = async (method, params) => await invokeClientMethod(method, params)
+window.agoraRtmInvokeClientMethod = async (method, callArguments) => await invokeClientMethod(method, callArguments)
 
-window.agoraRtmInvokeChannelMethod = async (method, params) => await invokeChannelMethod(method, params)
+window.agoraRtmInvokeChannelMethod = async (method, callArguments) => await invokeChannelMethod(method, callArguments)
 
-async function invokeStaticMethod(method, params) {
+async function invokeStaticMethod(method, callArguments) {
     let response = new Map()
 
-    let mappedParams = parseJsonIntoOneLevelMap(params)
+    let mappedCallArguments = jsonStringToObject(callArguments)
+    let params = mappedCallArguments['params']
 
     if (method === 'createInstance') {
-        let appId = mappedParams.get('appId')
+        let appId = params['appId']
         if (typeof appId !== 'string') {
             response.set('errorCode', -1)
         } else {
@@ -45,17 +46,14 @@ async function invokeStaticMethod(method, params) {
     ]))
 }
 
-async function invokeClientMethod(method, params) {
+async function invokeClientMethod(method, callArguments) {
     let response = new Map()
 
-    let mappedParams = new Map()
-    if (params != null) {
-        JSON.parse(params, function (k, v) {
-            mappedParams.set(k, v)
-        })
-    }
+    let mappedCallArguments = jsonStringToObject(callArguments)
+    let params = mappedCallArguments['params']
+    let args = params['args']
 
-    let clientIndex = mappedParams.get('clientIndex')
+    let clientIndex = params['clientIndex']
     let clientInstance = clients.get(clientIndex)
     if (clientInstance === undefined) {
         return mapToJsonString(new Map([
@@ -78,8 +76,8 @@ async function invokeClientMethod(method, params) {
     } else if (method === 'setLog') {
         //TODO: make web logs
     } else if (method === 'login') {
-        let userId = mappedParams.get('userId')
-        let token = mappedParams.get('token')
+        let userId = args['userId']
+        let token = args['token']
 
         try {
             await client.login({uid: userId, token: token})
@@ -99,7 +97,7 @@ async function invokeClientMethod(method, params) {
             return mapToJsonString(response)
         }
     } else if (method === 'renewToken') {
-        let token = mappedParams.get('token')
+        let token = args['token']
 
         try {
             await client.renewToken(token)
@@ -110,19 +108,18 @@ async function invokeClientMethod(method, params) {
             return mapToJsonString(response)
         }
     } else if (method === 'queryPeersOnlineStatus') {
-        let peerIds = mappedParams.get('peerIds')
+        let peerIds = args['peerIds']
 
         try {
-            if (!peerIds.isArray()) {
+            if (Array.isArray(peerIds) !== true) {
                 response.set('errorCode', -1)
                 response.set('errorMessage', 'peer Ids Array should be past')
             } else {
-                let peersOnlineStatusResult = await client.queryPeersOnlineStatus(peerIds)
+                let res = await client.queryPeersOnlineStatus(peerIds)
 
                 let peerIdsStatus = new Map()
-                for (let i = 0; i < peerIds.length; i++) {
-                    let peerId = peerIds[i]
-                    peerIdsStatus[peerId] = peersOnlineStatusResult.peerId
+                for (let id of peerIds) {
+                    peerIdsStatus.set(id, res[id])
                 }
 
                 response.set('errorCode', 0)
@@ -134,10 +131,10 @@ async function invokeClientMethod(method, params) {
             return mapToJsonString(response)
         }
     } else if (method === 'sendMessageToPeer') {
-        let peerId = mappedParams.get('peerId')
-        let message = mappedParams.get('message')
-        let offline = mappedParams.get('offline')
-        let historical = mappedParams.get('historical')
+        let peerId = args['peerId']
+        let message = args['message']
+        let offline = args['offline']
+        let historical = args['historical']
 
         try {
             await client.sendMessageToPeer(
@@ -184,7 +181,7 @@ async function invokeClientMethod(method, params) {
     } else if (method === 'refuseRemoteInvitation') {
         //TODO: implement
     } else if (method === 'createChannel') {
-        let channelId = mappedParams.get('channelId')
+        let channelId = args['channelId']
 
         try {
             let channel = client.createChannel(channelId)
@@ -198,7 +195,7 @@ async function invokeClientMethod(method, params) {
             return mapToJsonString(response)
         }
     } else if (method === 'releaseChannel') {
-        let channelId = mappedParams.get('channelId')
+        let channelId = args['channelId']
 
         try {
             let channelExist = clientInstance.rtmChannels.has(channelId)
@@ -223,12 +220,14 @@ async function invokeClientMethod(method, params) {
     ]))
 }
 
-async function invokeChannelMethod(method, params) {
+async function invokeChannelMethod(method, callArguments) {
     let response = new Map()
 
-    let mappedParams = parseJsonIntoOneLevelMap(params)
+    let mappedCallArguments = jsonStringToObject(callArguments)
+    let params = mappedCallArguments['params']
+    let args = params['args']
 
-    let clientIndex = mappedParams.get('clientIndex')
+    let clientIndex = params['clientIndex']
     let clientInstance = clients.get(clientIndex)
     if (clientInstance === undefined) {
         return mapToJsonString(new Map([
@@ -245,7 +244,7 @@ async function invokeChannelMethod(method, params) {
         ]))
     }
 
-    let channelId = mappedParams.get('channelId')
+    let channelId = params['channelId']
     let channelInstance = clientInstance.rtmChannels.get(channelId)
     if (channelInstance === undefined) {
         return mapToJsonString(new Map([
@@ -272,9 +271,9 @@ async function invokeChannelMethod(method, params) {
             return mapToJsonString(response)
         }
     } else if (method === 'sendMessage') {
-        let text = mappedParams.get('message')
-        let offline = mappedParams.get('offline')
-        let historical = mappedParams.get('historical')
+        let text = args['message']
+        let offline = args['offline']
+        let historical = args['historical']
 
         try {
             let message = client.createMessage({text: text})
