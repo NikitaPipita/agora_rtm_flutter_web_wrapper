@@ -72,7 +72,21 @@ async function invokeClientMethod(method, callArguments) {
 
 
     if (method === 'destroy') {
-        //TODO: release all client channels, delete client
+        try {
+            for (let [id, channelInstance] of clientInstance.rtmChannels) {
+                channelInstance.rtmChannel.removeAllListeners()
+            }
+            clientInstance.rtmChannels.clear()
+
+            client.removeAllListeners()
+            clients.delete(clientIndex)
+
+            response.set('errorCode', 0)
+        } catch (e) {
+            response.set('errorCode', e.code)
+        } finally {
+            return mapToJsonString(response)
+        }
     } else if (method === 'setLog') {
         //TODO: make web logs
     } else if (method === 'login') {
@@ -201,6 +215,8 @@ async function invokeClientMethod(method, callArguments) {
             let channelExist = clientInstance.rtmChannels.has(channelId)
 
             if (channelExist) {
+                let channelInstance = clientInstance.rtmChannels.get(channelId)
+                channelInstance.rtmChannel.removeAllListeners()
                 clientInstance.rtmChannels.delete(channelId)
                 response.set('errorCode', 0)
             } else {
