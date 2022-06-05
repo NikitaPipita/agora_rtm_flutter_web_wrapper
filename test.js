@@ -3,7 +3,7 @@ const assert = require('assert')
 
 it('create Agora RTM instance', async () => {
     const callArguments = '{\"call\":\"static\",' +
-        '\"params\":{\"appId\":\"4f47aba2d85f4ac7bb10ec91cd552273\"}}';
+        '\"params\":{\"appId\":\"TEST_ID\"}}';
     const expectedResponse = '{\"errorCode\":0,\"index\":0}';
 
     let response = await window.agoraRtmInvokeStaticMethod('createInstance', callArguments)
