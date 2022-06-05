@@ -3,12 +3,25 @@
   "version": "1.0.0",
   "main": "agora_module.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js"
+    "build": "webpack --config webpack.config.js",
+    "test": "karma start --single-run --browsers ChromeHeadless karma.conf.js"
   },
   "dependencies": {
     "agora-rtm-sdk": "1.4.3",
     "webpack": "5.28.0",
-    "webpack-dev-server": "3.11.2",
-    "webpack-cli": "4.5.0"
+    "webpack-cli": "4.5.0",
+    "webpack-dev-server": "3.11.2"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.0",
+    "chai": "^4.3.6",
+    "jsdom": "19.0.0",
+    "jsdom-global": "3.0.2",
+    "karma": "^6.3.20",
+    "karma-browserify": "^8.1.0",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-mocha": "^2.0.1",
+    "mocha": "^10.0.0"
   }
 }
