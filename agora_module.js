@@ -87,8 +87,6 @@ async function invokeClientMethod(method, callArguments) {
         } finally {
             return mapToJsonString(response)
         }
-    } else if (method === 'setLog') {
-        //TODO: make web logs
     } else if (method === 'login') {
         let userId = args['userId']
         let token = args['token']
@@ -162,38 +160,6 @@ async function invokeClientMethod(method, callArguments) {
         } finally {
             return mapToJsonString(response)
         }
-    } else if (method === 'setLocalUserAttributes') {
-        //TODO: implement
-    } else if (method === 'addOrUpdateLocalUserAttributes') {
-        //TODO: implement
-    } else if (method === 'deleteLocalUserAttributesByKeys') {
-        //TODO: implement
-    } else if (method === 'clearLocalUserAttributes') {
-        //TODO: implement
-    } else if (method === 'getUserAttributes') {
-        //TODO: implement
-    } else if (method === 'getUserAttributesByKeys') {
-        //TODO: implement
-    } else if (method === 'setChannelAttributes') {
-        //TODO: implement
-    } else if (method === 'addOrUpdateChannelAttributes') {
-        //TODO: implement
-    } else if (method === 'deleteChannelAttributesByKeys') {
-        //TODO: implement
-    } else if (method === 'clearChannelAttributes') {
-        //TODO: implement
-    } else if (method === 'getChannelAttributes') {
-        //TODO: implement
-    } else if (method === 'getChannelAttributesByKeys') {
-        //TODO: implement
-    } else if (method === 'sendLocalInvitation') {
-        //TODO: implement
-    } else if (method === 'cancelLocalInvitation') {
-        //TODO: implement
-    } else if (method === 'acceptRemoteInvitation') {
-        //TODO: implement
-    } else if (method === 'refuseRemoteInvitation') {
-        //TODO: implement
     } else if (method === 'createChannel') {
         let channelId = args['channelId']
 

@@ -10,8 +10,6 @@ export class RTMClient {
 }
 
 export function configureClientEventHandler(client, clientIndex) {
-    //TODO: Implement invitations handlers
-
     client.on('ConnectionStateChanged', function (newState, reason) {
         let eventAsMap = new Map()
 

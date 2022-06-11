@@ -9,8 +9,6 @@ export class RTMChannel {
 }
 
 export function configureChannelEventHandler(channel, clientIndex, channelId) {
-    //TODO: Implement onAttributesUpdated
-
     channel.on('ChannelMessage', function (message, memberId, messageProperties) {
         let eventAsMap = new Map()
 
